@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mind Bloom</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body{
+      margin:0;
+      font-family:"Yu Gothic", sans-serif;
+      background:linear-gradient(to bottom,#0f172a,#1e293b);
+      color:white;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start; /* 画面が縦に伸びてもスクロールできるように変更 */
+      min-height:100vh;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .app{
+      width:340px;
+      background:rgba(255,255,255,0.08);
+      backdrop-filter:blur(10px);
+      border-radius:25px;
+      padding:25px;
+      text-align:center;
+      box-shadow:0 0 20px rgba(0,0,0,0.3);
+    }
+
+    h1{
+      font-size:28px;
+      margin-bottom:10px;
+    }
+
+    h2{
+      font-size:18px;
+      margin-top:25px;
+      margin-bottom:10px;
+      text-align:left;
+      color:#facc15;
+      border-left: 4px solid #38bdf8;
+      padding-left: 8px;
+    }
+
+    p{
+      color:#cbd5e1;
+      line-height:1.6;
+    }
+
+    .btn{
+      width:100%;
+      padding:15px;
+      margin-top:12px;
+      border:none;
+      border-radius:15px;
+      background:#334155;
+      color:white;
+      font-size:16px;
+      cursor:pointer;
+      transition:0.3s;
+    }
+
+    .btn:hover{
+      background:#475569;
+      transform:scale(1.03);
+    }
+
+    .hidden{
+      display:none;
+    }
+
+    #timer{
+      font-size:55px;
+      margin-top:20px;
+      font-weight:bold;
+    }
+
+    .stamp{
+      font-size:60px;
+      margin-top:20px;
+      animation:pop 0.5s ease;
+    }
+
+    #stampCount{
+      margin-top:10px;
+      font-size:20px;
+      color:#facc15;
+    }
+
+    #plant {
+      font-size: 50px;
+      margin-top: 10px;
+    }
+
+    #breathingCircle{
+      width:120px;
+      height:120px;
+      border-radius:50%;
+      background:#38bdf8;
+      margin:20px auto;
+      transition:all 4s linear;
+      opacity:0.8;
+    }
+
+    #breathText{
+      font-size:28px;
+      margin-top:15px;
+    }
+
+    .small-btn{
+      width:48%;
+      padding:12px;
+      margin-top:12px;
+      border:none;
+      border-radius:12px;
+      background:#475569;
+      color:white;
+      cursor:pointer;
+    }
+
+    .btn-row{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    /* 記録用テーブルのスタイル */
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      overflow: hidden;
+      font-size: 14px;
+    }
+    
+    .history-table th, .history-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+    }
+    
+    .history-table th {
+      background: rgba(255, 255, 255, 0.1);
+      color: #facc15;
+    }
+
+    /* グラフコンテナのスタイル */
+    .chart-container {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 14px;
+      box-sizing: border-box;
+      margin-bottom: 8px;
+    }
+    
+    input[type="text"]::placeholder {
+      color: #94a3b8;
+    }
+
+    .history-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      text-align: left;
+      max-height: 120px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      padding: 5px;
+    }
+
+    .history-list li {
+      padding: 6px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 14px;
+    }
+
+    .history-list li:last-child {
+      border-bottom: none;
+    }
+
+    @keyframes pop{
+      0%{
+        transform:scale(0.5);
+        opacity:0;
+      }
+      100%{
+        transform:scale(1);
+        opacity:1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <div id="home">
+    <h1>Mind Bloom 🌙</h1>
+    <p>今の気分を選んでね</p>
+
+    <div id="stampCount">
+      🌟 スタンプ：0個
+    </div>
+    
+    <div id="plant">🌱</div>
+    <div style="font-size: 11px; color: #cbd5e1; margin-bottom: 10px;">
+      (5🌿 15🌷 30🌸 で成長！)
+    </div>
+
+    <button class="btn" onclick="selectMood('不安')">
+      😞 不安
+    </button>
+
+    <button class="btn" onclick="selectMood('だるい')">
+      😴 だるい
+    </button>
+
+    <button class="btn" onclick="selectMood('普通')">
+      🙂 普通
+    </button>
+
+    <button class="btn" onclick="openHistory()" style="background: #1e293b; border: 1px solid #475569;">
+      記録を見る
+    </button>
+  </div>
+
+  <div id="support" class="hidden">
+    <h1>AIサポート</h1>
+    <p id="message"></p>
+
+    <div id="breathingQuestion" class="hidden">
+      <p>腹式呼吸を行いますか？</p>
+      <button class="btn" onclick="startBreathing()">
+        はい
+      </button>
+      <button class="btn" onclick="goFocusSetup()">
+        いいえ
+      </button>
+    </div>
+
+    <button id="normalStartBtn" class="btn hidden" onclick="goFocusSetup()">
+      集中タイマーへ
+    </button>
+
+    <button class="btn" onclick="goHome()">
+      戻る
+    </button>
+  </div>
+
+  <div id="breathing" class="hidden">
+    <h1>腹式呼吸</h1>
+    <div id="breathingCircle"></div>
+    <div id="breathText">吸う</div>
+    <p id="breathTimer">3:00</p>
+    <button class="btn" onclick="goHome()">
+      戻る
+    </button>
+  </div>
+
+  <div id="focusSetup" class="hidden">
+    <h1>集中タイマー</h1>
+    <p>
+      まずは1分だけ始めてみよう<br>
+      <span style="font-size: 12px; color: #facc15;">※1分以上の集中でスタンプをゲット！</span>
+    </p>
+    <button class="btn" onclick="startFocusTimer()">
+      スタート
+    </button>
+    <button class="btn" onclick="goHome()">
+      戻る
+    </button>
+  </div>
+
+  <div id="focus" class="hidden">
+    <h1>集中タイマー</h1>
+    <div id="timer">01:00</div>
+    <div class="btn-row">
+      <button class="small-btn" onclick="pauseTimer()">
+        一時停止
+      </button>
+      <button class="small-btn" onclick="finishTimer()">
+        終了
+      </button>
+    </div>
+  </div>
+
+  <div id="complete" class="hidden">
+    <h1>おつかれさま！</h1>
+    <div class="stamp">🌟</div>
+    <p>スタンプを獲得しました！</p>
+    <div id="completeStampCount"></div>
+    <button class="btn" onclick="goHome()">
+      ホームへ戻る
+    </button>
+  </div>
+
+  <div id="history" class="hidden">
+    <h1>ココロの記録</h1>
+    
+    <h2>一週間の気分変化</h2>
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>日付 (曜日)</th>
+          <th>気分</th>
+        </tr>
+      </thead>
+      <tbody id="moodTableBody">
+        </tbody>
+    </table>
+
+    <h2>気分スコアの推移</h2>
+    <div class="chart-container">
+      <canvas id="moodChart"></canvas>
+    </div>
+
+    <h2>一日の集中時間</h2>
+    <div class="chart-container">
+      <canvas id="focusChart"></canvas>
+    </div>
+
+    <h2>今日のプチ達成</h2>
+    <input type="text" id="achievementInput" placeholder="例：5分勉強した！本を読んだ！">
+    <button class="btn" onclick="saveAchievement()" style="margin-top: 0; padding: 10px; font-size: 14px; background: #0284c7;">
+      記録する
+    </button>
+
+    <h2>達成リスト</h2>
+    <ul id="achievementList" class="history-list"></ul>
+
+    <h2>すべての気分履歴</h2>
+    <ul id="moodHistory" class="history-list"></ul>
+
+    <button class="btn" onclick="goHome()" style="margin-top: 20px;">
+      戻る
+    </button>
+  </div>
+
+</div>
+
+<script>
+let stamps = 0;
+let focusInterval;
+let totalSeconds = 60;
+let countingUp = false;
+let paused = false;
+let totalFocusedSeconds = 0;
+
+// グラフのインスタンスを保持する変数
+let moodChartInstance = null;
+let focusChartInstance = null;
+
+// --------------------
+// 保存データ読み込み
+// --------------------
+let savedStamps = localStorage.getItem("stamps");
+if(savedStamps){
+  stamps = Number(savedStamps);
+}
+
+let achievements = JSON.parse(localStorage.getItem("achievements")) || [];
+let moods = JSON.parse(localStorage.getItem("moods")) || [];
+let focusData = JSON.parse(localStorage.getItem("focusData")) || {};
+
+// --------------------
+// 初期表示
+// --------------------
+updateStampDisplay();
+updatePlant();
+renderAchievements();
+renderMoodHistory();
+
+// --------------------
+// 共通
+// --------------------
+function hideAll(){
+  document
+    .querySelectorAll(".app > div")
+    .forEach(div => div.classList.add("hidden"));
+}
+
+function goHome(){
+  clearInterval(focusInterval);
+  hideAll();
+  document
+    .getElementById("home")
+    .classList.remove("hidden");
+}
+
+// --------------------
+// 気分選択
+// --------------------
+function selectMood(mood){
+  moods.push({
+    mood:mood,
+    date:new Date().toLocaleDateString()
+  });
+
+  localStorage.setItem("moods", JSON.stringify(moods));
+  hideAll();
+  document
+    .getElementById("support")
+    .classList.remove("hidden");
+
+  const message = document.getElementById("message");
+
+  if(mood === "不安"){
+    message.innerText = "不安な気持ちを整えるために、腹式呼吸をおすすめします。";
+    document
+      .getElementById("breathingQuestion")
+      .classList.remove("hidden");
+  }
+  else if(mood === "だるい"){
+    message.innerText = "気持ちを落ち着かせてから始めてみよう。";
+    document
+      .getElementById("breathingQuestion")
+      .classList.remove("hidden");
+  }
+  else{
+    message.innerText = "いい感じ！まずは少し始めてみよう。";
+    document
+      .getElementById("normalStartBtn")
+      .classList.remove("hidden");
+  }
+}
+
+// --------------------
+// 腹式呼吸
+// --------------------
+function startBreathing(){
+  hideAll();
+  document
+    .getElementById("breathing")
+    .classList.remove("hidden");
+
+  const breathText = document.getElementById("breathText");
+  const circle = document.getElementById("breathingCircle");
+  const timerText = document.getElementById("breathTimer");
+
+  const phases = [
+    {text:"吸う", scale:1.4},
+    {text:"止める", scale:1.4},
+    {text:"吐く", scale:1}
+  ];
+
+  let phaseIndex = 0;
+
+  function updateBreath(){
+    breathText.innerText = phases[phaseIndex].text;
+    circle.style.transform = `scale(${phases[phaseIndex].scale})`;
+    phaseIndex = (phaseIndex + 1) % phases.length;
+  }
+
+  updateBreath();
+  const breathInterval = setInterval(updateBreath,4000);
+  let totalTime = 180;
+
+  const countdown = setInterval(()=>{
+    totalTime--;
+    let minutes = Math.floor(totalTime / 60);
+    let seconds = totalTime % 60;
+
+    if(seconds < 10){
+      seconds = "0" + seconds;
+    }
+
+    timerText.innerText = `${minutes}:${seconds}`;
+
+    if(totalTime <= 0){
+      clearInterval(countdown);
+      clearInterval(breathInterval);
+      goFocusSetup();
+    }
+  },1000);
+}
+
+// --------------------
+// 集中準備
+// --------------------
+function goFocusSetup(){
+  hideAll();
+  document
+    .getElementById("focusSetup")
+    .classList.remove("hidden");
+}
+
+// --------------------
+// 集中タイマー
+// --------------------
+function startFocusTimer(){
+  hideAll();
+  document
+    .getElementById("focus")
+    .classList.remove("hidden");
+
+  totalSeconds = 60;
+  countingUp = false;
+  paused = false;
+  totalFocusedSeconds = 0;
+  updateTimerDisplay();
+
+  focusInterval = setInterval(()=>{
+    if(paused) return;
+
+    if(!countingUp){
+      totalSeconds--;
+      totalFocusedSeconds++;
+      if(totalSeconds <= 0){
+        countingUp = true;
+        totalSeconds = 0;
+      }
+    }
+    else{
+      totalSeconds++;
+      totalFocusedSeconds++;
+
+      if(totalFocusedSeconds % 600 === 0){
+        stamps++;
+        saveStamps();
+        updateStampDisplay();
+        updatePlant();
+      }
+    }
+    updateTimerDisplay();
+  },1000);
+}
+
+// --------------------
+// タイマー表示
+// --------------------
+function updateTimerDisplay(){
+  let minutes = Math.floor(totalSeconds / 60);
+  let seconds = totalSeconds % 60;
+
+  if(minutes < 10){
+    minutes = "0" + minutes;
+  }
+  if(seconds < 10){
+    seconds = "0" + seconds;
+  }
+
+  document
+    .getElementById("timer")
+    .innerText = `${minutes}:${seconds}`;
+}
+
+// --------------------
+// 一時停止
+// --------------------
+function pauseTimer(){
+  paused = !paused;
+}
+
+// --------------------
+// 終了
+// --------------------
+function finishTimer(){
+  clearInterval(focusInterval);
+
+  // 1分以上（60秒以上）集中していたらスタンプゲット
+  if(totalFocusedSeconds >= 60){
+    stamps++;
+    saveStamps();
+  }
+
+  updateStampDisplay();
+  updatePlant();
+  saveFocusData();
+  hideAll();
+
+  document
+    .getElementById("complete")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("completeStampCount")
+    .innerText = `現在のスタンプ数：${stamps}個`;
+}
+
+// --------------------
+// スタンプ保存
+// --------------------
+function saveStamps(){
+  localStorage.setItem("stamps", stamps);
+}
+
+// --------------------
+// スタンプ表示
+// --------------------
+function updateStampDisplay(){
+  document
+    .getElementById("stampCount")
+    .innerText = `🌟 スタンプ：${stamps}個`;
+}
+
+// --------------------
+// 植物成長
+// --------------------
+function updatePlant(){
+  let plant = "🌱";
+  if(stamps >= 30){
+    plant = "🌸";
+  }
+  else if(stamps >= 15){
+    plant = "🌷";
+  }
+  else if(stamps >= 5){
+    plant = "🌿";
+  }
+
+  document
+    .getElementById("plant")
+    .innerText = plant;
+}
+
+// --------------------
+// 達成記録追加
+// --------------------
+function saveAchievement(){
+  const text = document.getElementById("achievementInput").value;
+  if(text.trim() === "") return;
+
+  achievements.push({
+    text:text,
+    date:new Date().toLocaleDateString()
+  });
+
+  localStorage.setItem("achievements", JSON.stringify(achievements));
+  document.getElementById("achievementInput").value = "";
+  renderAchievements();
+}
+
+// --------------------
+// 達成記録表示
+// --------------------
+function renderAchievements(){
+  const list = document.getElementById("achievementList");
+  if(!list) return;
+  list.innerHTML = "";
+
+  achievements
+    .slice()
+    .reverse()
+    .forEach(item => {
+      const li = document.createElement("li");
+      li.innerText = `${item.date} ： ${item.text}`;
+      list.appendChild(li);
+    });
+}
+
+// --------------------
+// 気分履歴表示
+// --------------------
+function renderMoodHistory(){
+  const list = document.getElementById("moodHistory");
+  if(!list) return;
+  list.innerHTML = "";
+
+  moods
+    .slice()
+    .reverse()
+    .forEach(item => {
+      const li = document.createElement("li");
+      li.innerText = `${item.date} ： ${item.mood}`;
+      list.appendChild(li);
+    });
+}
+
+// --------------------
+// 集中時間保存
+// --------------------
+function saveFocusData(){
+  const today = new Date().toLocaleDateString();
+  const focusedMinutes = Math.floor(totalFocusedSeconds / 60);
+
+  focusData[today] = (focusData[today] || 0) + focusedMinutes;
+  localStorage.setItem("focusData", JSON.stringify(focusData));
+}
+
+// --------------------
+// 直近7日間の日付データを取得するヘルパー関数
+// --------------------
+function getPast7Days() {
+  const days = [];
+  const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push({
+      dateStr: d.toLocaleDateString(),
+      dayName: dayNames[d.getDay()]
+    });
+  }
+  return days;
+}
+
+// --------------------
+// 新機能：表とグラフの描画処理
+// --------------------
+function renderMoodTableAndCharts(){
+  const past7Days = getPast7Days();
+  
+  // 1. 曜日ごとの気分表の作成
+  const tableBody = document.getElementById("moodTableBody");
+  if(tableBody){
+    tableBody.innerHTML = "";
+    past7Days.forEach(day => {
+      // その日の最新の気分データを検索
+      const dayMood = moods.slice().reverse().find(m => m.date === day.dateStr);
+      const moodText = dayMood ? dayMood.mood : "ー";
+      
+      // 日付の表記を短く整形 (例: 2026/6/8 -> 6/8)
+      const shortDate = day.dateStr.split('/').slice(1).join('/');
+      
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${shortDate} (${day.dayName})</td><td>${moodText}</td>`;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  // グラフ用共通ラベル (曜日の配列)
+  const labels = past7Days.map(day => day.dayName);
+
+  // 2. 気分スコアデータの準備 (不安=1, だるい=2, 普通=3)
+  const moodScoreMap = { "不安": 1, "だるい": 2, "普通": 3 };
+  const moodScores = past7Days.map(day => {
+    const dayMood = moods.slice().reverse().find(m => m.date === day.dateStr);
+    return dayMood ? moodScoreMap[dayMood.mood] : null;
+  });
+
+  // 気分推移グラフ (折れ線)
+  const ctxMood = document.getElementById('moodChart').getContext('2d');
+  if(moodChartInstance) moodChartInstance.destroy(); // 既存のグラフを破棄して再描画
+  moodChartInstance = new Chart(ctxMood, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '気分スコア',
+        data: moodScores,
+        borderColor: '#38bdf8',
+        backgroundColor: 'rgba(56, 189, 248, 0.2)',
+        tension: 0.3,
+        spanGaps: true, // データがない日があっても線を繋ぐ
+        pointRadius: 4,
+        pointBackgroundColor: '#38bdf8'
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: {
+          min: 0,
+          max: 4,
+          ticks: {
+            color: '#cbd5e1',
+            stepSize: 1,
+            callback: function(value) {
+              if (value === 1) return '😞 不安';
+              if (value === 2) return '😴 だるい';
+              if (value === 3) return '🙂 普通';
+              return '';
+            }
+          },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+
+  // 3. 集中時間データの準備 (分単位)
+  const focusMinutes = past7Days.map(day => focusData[day.dateStr] || 0);
+
+  // 集中時間グラフ (棒グラフ)
+  const ctxFocus = document.getElementById('focusChart').getContext('2d');
+  if(focusChartInstance) focusChartInstance.destroy(); // 既存のグラフを破棄して再描画
+  focusChartInstance = new Chart(ctxFocus, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '集中時間',
+        data: focusMinutes,
+        backgroundColor: '#facc15',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: {
+          ticks: { color: '#cbd5e1' },
+          grid: { color: 'rgba(255,255,255,0.1)' },
+          title: { display: true, text: '分', color: '#cbd5e1' }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+}
+
+// --------------------
+// 記録画面
+// --------------------
+function openHistory(){
+  hideAll();
+  document
+    .getElementById("history")
+    .classList.remove("hidden");
+
+  renderAchievements();
+  renderMoodHistory();
+  renderMoodTableAndCharts(); // 画面を開いた時に表とグラフを生成
+}
+</script>
+
+</body>
+</html>
