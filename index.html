@@ -15,7 +15,7 @@
       color:white;
       display:flex;
       justify-content:center;
-      align-items:flex-start; /* 画面が縦に伸びてもスクロールできるように変更 */
+      align-items:flex-start;
       min-height:100vh;
       padding: 20px;
       box-sizing: border-box;
@@ -128,7 +128,6 @@
       gap:10px;
     }
 
-    /* 記録用テーブルのスタイル */
     .history-table {
       width: 100%;
       border-collapse: collapse;
@@ -150,7 +149,6 @@
       color: #facc15;
     }
 
-    /* グラフコンテナのスタイル */
     .chart-container {
       background: rgba(0, 0, 0, 0.2);
       border-radius: 12px;
@@ -160,7 +158,7 @@
 
     input[type="text"] {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       border-radius: 10px;
       border: none;
       background: rgba(255, 255, 255, 0.2);
@@ -168,6 +166,7 @@
       font-size: 14px;
       box-sizing: border-box;
       margin-bottom: 8px;
+      margin-top: 10px;
     }
     
     input[type="text"]::placeholder {
@@ -226,16 +225,20 @@
       (5🌿 15🌷 30🌸 で成長！)
     </div>
 
-    <button class="btn" onclick="selectMood('不安')">
-      😞 不安
+    <button class="btn" onclick="selectMood('元気')" style="background: #22c55e;">
+      😃 元気
+    </button>
+
+    <button class="btn" onclick="selectMood('普通')">
+      🙂 普通
     </button>
 
     <button class="btn" onclick="selectMood('だるい')">
       😴 だるい
     </button>
 
-    <button class="btn" onclick="selectMood('普通')">
-      🙂 普通
+    <button class="btn" onclick="selectMood('不安')">
+      😞 不安
     </button>
 
     <button class="btn" onclick="openHistory()" style="background: #1e293b; border: 1px solid #475569;">
@@ -271,6 +274,10 @@
     <div id="breathingCircle"></div>
     <div id="breathText">吸う</div>
     <p id="breathTimer">3:00</p>
+    
+    <button class="btn" onclick="skipBreathing()" style="background: #475569;">
+      スキップしてタイマーへ
+    </button>
     <button class="btn" onclick="goHome()">
       戻る
     </button>
@@ -307,9 +314,18 @@
     <h1>おつかれさま！</h1>
     <div class="stamp">🌟</div>
     <p>スタンプを獲得しました！</p>
-    <div id="completeStampCount"></div>
-    <button class="btn" onclick="goHome()">
-      ホームへ戻る
+    <div id="completeStampCount" style="margin-bottom: 15px;"></div>
+    
+    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+      <span style="font-size: 16px; color: #facc15; font-weight: bold;">今日のプチ達成を記録しよう</span>
+      <input type="text" id="achievementInput" placeholder="例：1分集中できた！本を読んだ！">
+      <button class="btn" onclick="saveAchievementAndGoHome()" style="margin-top: 5px; padding: 12px; font-size: 15px; background: #0284c7;">
+        記録してホームへ戻る
+      </button>
+    </div>
+
+    <button class="btn" onclick="goHome()" style="background: #1e293b; border: 1px solid #475569; margin-top: 10px;">
+      記録せずにホームへ戻る
     </button>
   </div>
 
@@ -324,8 +340,7 @@
           <th>気分</th>
         </tr>
       </thead>
-      <tbody id="moodTableBody">
-        </tbody>
+      <tbody id="moodTableBody"></tbody>
     </table>
 
     <h2>気分スコアの推移</h2>
@@ -337,12 +352,6 @@
     <div class="chart-container">
       <canvas id="focusChart"></canvas>
     </div>
-
-    <h2>今日のプチ達成</h2>
-    <input type="text" id="achievementInput" placeholder="例：5分勉強した！本を読んだ！">
-    <button class="btn" onclick="saveAchievement()" style="margin-top: 0; padding: 10px; font-size: 14px; background: #0284c7;">
-      記録する
-    </button>
 
     <h2>達成リスト</h2>
     <ul id="achievementList" class="history-list"></ul>
@@ -364,6 +373,10 @@ let totalSeconds = 60;
 let countingUp = false;
 let paused = false;
 let totalFocusedSeconds = 0;
+
+// 腹式呼吸タイマー用のインターバル変数（スキップ対応のためグローバルに配置）
+let breathInterval;
+let breathCountdown;
 
 // グラフのインスタンスを保持する変数
 let moodChartInstance = null;
@@ -400,6 +413,8 @@ function hideAll(){
 
 function goHome(){
   clearInterval(focusInterval);
+  clearInterval(breathCountdown);
+  clearInterval(breathInterval);
   hideAll();
   document
     .getElementById("home")
@@ -433,6 +448,12 @@ function selectMood(mood){
     message.innerText = "気持ちを落ち着かせてから始めてみよう。";
     document
       .getElementById("breathingQuestion")
+      .classList.remove("hidden");
+  }
+  else if(mood === "元気"){
+    message.innerText = "最高だね！その調子でどんどん進めよう！";
+    document
+      .getElementById("normalStartBtn")
       .classList.remove("hidden");
   }
   else{
@@ -471,10 +492,10 @@ function startBreathing(){
   }
 
   updateBreath();
-  const breathInterval = setInterval(updateBreath,4000);
+  breathInterval = setInterval(updateBreath,4000);
   let totalTime = 180;
 
-  const countdown = setInterval(()=>{
+  breathCountdown = setInterval(()=>{
     totalTime--;
     let minutes = Math.floor(totalTime / 60);
     let seconds = totalTime % 60;
@@ -486,11 +507,18 @@ function startBreathing(){
     timerText.innerText = `${minutes}:${seconds}`;
 
     if(totalTime <= 0){
-      clearInterval(countdown);
+      clearInterval(breathCountdown);
       clearInterval(breathInterval);
       goFocusSetup();
     }
   },1000);
+}
+
+// 追加：腹式呼吸のスキップ処理
+function skipBreathing() {
+  clearInterval(breathCountdown);
+  clearInterval(breathInterval);
+  goFocusSetup();
 }
 
 // --------------------
@@ -576,7 +604,6 @@ function pauseTimer(){
 function finishTimer(){
   clearInterval(focusInterval);
 
-  // 1分以上（60秒以上）集中していたらスタンプゲット
   if(totalFocusedSeconds >= 60){
     stamps++;
     saveStamps();
@@ -632,12 +659,13 @@ function updatePlant(){
     .innerText = plant;
 }
 
-// --------------------
-// 達成記録追加
-// --------------------
-function saveAchievement(){
+// 変更：達成記録を追加して自動でホームに戻る
+function saveAchievementAndGoHome(){
   const text = document.getElementById("achievementInput").value;
-  if(text.trim() === "") return;
+  if(text.trim() === "") {
+    goHome();
+    return;
+  }
 
   achievements.push({
     text:text,
@@ -647,6 +675,7 @@ function saveAchievement(){
   localStorage.setItem("achievements", JSON.stringify(achievements));
   document.getElementById("achievementInput").value = "";
   renderAchievements();
+  goHome();
 }
 
 // --------------------
@@ -697,7 +726,7 @@ function saveFocusData(){
 }
 
 // --------------------
-// 直近7日間の日付データを取得するヘルパー関数
+// 直近7日間の日付データを取得
 // --------------------
 function getPast7Days() {
   const days = [];
@@ -714,21 +743,17 @@ function getPast7Days() {
 }
 
 // --------------------
-// 新機能：表とグラフの描画処理
+// 表とグラフの描画処理
 // --------------------
 function renderMoodTableAndCharts(){
   const past7Days = getPast7Days();
   
-  // 1. 曜日ごとの気分表の作成
   const tableBody = document.getElementById("moodTableBody");
   if(tableBody){
     tableBody.innerHTML = "";
     past7Days.forEach(day => {
-      // その日の最新の気分データを検索
       const dayMood = moods.slice().reverse().find(m => m.date === day.dateStr);
       const moodText = dayMood ? dayMood.mood : "ー";
-      
-      // 日付の表記を短く整形 (例: 2026/6/8 -> 6/8)
       const shortDate = day.dateStr.split('/').slice(1).join('/');
       
       const tr = document.createElement("tr");
@@ -737,19 +762,17 @@ function renderMoodTableAndCharts(){
     });
   }
 
-  // グラフ用共通ラベル (曜日の配列)
   const labels = past7Days.map(day => day.dayName);
 
-  // 2. 気分スコアデータの準備 (不安=1, だるい=2, 普通=3)
-  const moodScoreMap = { "不安": 1, "だるい": 2, "普通": 3 };
+  // 変更：元気スコアを4点に設定
+  const moodScoreMap = { "不安": 1, "だるい": 2, "普通": 3, "元気": 4 };
   const moodScores = past7Days.map(day => {
     const dayMood = moods.slice().reverse().find(m => m.date === day.dateStr);
     return dayMood ? moodScoreMap[dayMood.mood] : null;
   });
 
-  // 気分推移グラフ (折れ線)
   const ctxMood = document.getElementById('moodChart').getContext('2d');
-  if(moodChartInstance) moodChartInstance.destroy(); // 既存のグラフを破棄して再描画
+  if(moodChartInstance) moodChartInstance.destroy();
   moodChartInstance = new Chart(ctxMood, {
     type: 'line',
     data: {
@@ -760,7 +783,7 @@ function renderMoodTableAndCharts(){
         borderColor: '#38bdf8',
         backgroundColor: 'rgba(56, 189, 248, 0.2)',
         tension: 0.3,
-        spanGaps: true, // データがない日があっても線を繋ぐ
+        spanGaps: true,
         pointRadius: 4,
         pointBackgroundColor: '#38bdf8'
       }]
@@ -771,7 +794,7 @@ function renderMoodTableAndCharts(){
         x: { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(255,255,255,0.05)' } },
         y: {
           min: 0,
-          max: 4,
+          max: 5, // 変更：最高点を4点にしたため上限を調整
           ticks: {
             color: '#cbd5e1',
             stepSize: 1,
@@ -779,6 +802,7 @@ function renderMoodTableAndCharts(){
               if (value === 1) return '😞 不安';
               if (value === 2) return '😴 だるい';
               if (value === 3) return '🙂 普通';
+              if (value === 4) return '😃 元気';
               return '';
             }
           },
@@ -791,12 +815,10 @@ function renderMoodTableAndCharts(){
     }
   });
 
-  // 3. 集中時間データの準備 (分単位)
   const focusMinutes = past7Days.map(day => focusData[day.dateStr] || 0);
 
-  // 集中時間グラフ (棒グラフ)
   const ctxFocus = document.getElementById('focusChart').getContext('2d');
-  if(focusChartInstance) focusChartInstance.destroy(); // 既存のグラフを破棄して再描画
+  if(focusChartInstance) focusChartInstance.destroy();
   focusChartInstance = new Chart(ctxFocus, {
     type: 'bar',
     data: {
@@ -836,7 +858,7 @@ function openHistory(){
 
   renderAchievements();
   renderMoodHistory();
-  renderMoodTableAndCharts(); // 画面を開いた時に表とグラフを生成
+  renderMoodTableAndCharts();
 }
 </script>
 
