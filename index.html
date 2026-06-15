@@ -120,6 +120,8 @@
       background:#475569;
       color:white;
       cursor:pointer;
+      font-size: 14px;
+      transition: 0.2s;
     }
 
     .btn-row{
@@ -283,6 +285,20 @@
     </button>
   </div>
 
+  <div id="breathingResult" class="hidden">
+    <h1>呼吸のふりかえり</h1>
+    <p>不安やだるさは少し減りましたか？<br>今の気持ちに一番近いものを選んでね。</p>
+    <button class="btn" onclick="saveBreathingResult('不安・だるさが減った！✨')" style="background: #0284c7;">
+      ✨ 不安・だるさが減った！
+    </button>
+    <button class="btn" onclick="saveBreathingResult('少し楽になった 🌿')">
+      🌿 少し楽になった
+    </button>
+    <button class="btn" onclick="saveBreathingResult('あまり変わらない 😐')">
+      😐 あまり変わらない
+    </button>
+  </div>
+
   <div id="focusSetup" class="hidden">
     <h1>集中タイマー</h1>
     <p>
@@ -317,14 +333,25 @@
     <div id="completeStampCount" style="margin-bottom: 15px;"></div>
     
     <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+      <span style="font-size: 14px; color: #cbd5e1;">今回の集中度はどうでしたか？</span>
+      <div class="btn-row" style="margin-top: 5px; margin-bottom: 15px;">
+        <button id="qualityGoodBtn" class="small-btn" onclick="setFocusQuality('できた')" style="background: #22c55e; font-weight: bold;">
+          🎯 集中できた
+        </button>
+        <button id="qualityBadBtn" class="small-btn" onclick="setFocusQuality('できなかった')" style="background: #475569;">
+          ☁️ できなかった
+        </button>
+      </div>
+
       <span style="font-size: 16px; color: #facc15; font-weight: bold;">今日のプチ達成を記録しよう</span>
-      <input type="text" id="achievementInput" placeholder="例：1分集中できた！本を読んだ！">
-      <button class="btn" onclick="saveAchievementAndGoHome()" style="margin-top: 5px; padding: 12px; font-size: 15px; background: #0284c7;">
+      <input type="text" id="achievementInput" placeholder="例：本を読んだ！宿題をすすめた！">
+      
+      <button class="btn" onclick="saveFocusResult(true)" style="margin-top: 5px; padding: 12px; font-size: 15px; background: #0284c7;">
         記録してホームへ戻る
       </button>
     </div>
 
-    <button class="btn" onclick="goHome()" style="background: #1e293b; border: 1px solid #475569; margin-top: 10px;">
+    <button class="btn" onclick="saveFocusResult(false)" style="background: #1e293b; border: 1px solid #475569; margin-top: 10px;">
       記録せずにホームへ戻る
     </button>
   </div>
@@ -374,11 +401,11 @@ let countingUp = false;
 let paused = false;
 let totalFocusedSeconds = 0;
 
-// 腹式呼吸タイマー用のインターバル変数（スキップ対応のためグローバルに配置）
+let currentFocusQuality = "できた";
+
 let breathInterval;
 let breathCountdown;
 
-// グラフのインスタンスを保持する変数
 let moodChartInstance = null;
 let focusChartInstance = null;
 
@@ -509,15 +536,31 @@ function startBreathing(){
     if(totalTime <= 0){
       clearInterval(breathCountdown);
       clearInterval(breathInterval);
-      goFocusSetup();
+      showBreathingResult();
     }
   },1000);
 }
 
-// 追加：腹式呼吸のスキップ処理
 function skipBreathing() {
   clearInterval(breathCountdown);
   clearInterval(breathInterval);
+  goFocusSetup();
+}
+
+function showBreathingResult() {
+  hideAll();
+  document
+    .getElementById("breathingResult")
+    .classList.remove("hidden");
+}
+
+function saveBreathingResult(result) {
+  moods.push({
+    mood: `💨 呼吸後: ${result}`,
+    date: new Date().toLocaleDateString()
+  });
+  localStorage.setItem("moods", JSON.stringify(moods));
+  renderMoodHistory();
   goFocusSetup();
 }
 
@@ -572,9 +615,6 @@ function startFocusTimer(){
   },1000);
 }
 
-// --------------------
-// タイマー表示
-// --------------------
 function updateTimerDisplay(){
   let minutes = Math.floor(totalSeconds / 60);
   let seconds = totalSeconds % 60;
@@ -591,16 +631,10 @@ function updateTimerDisplay(){
     .innerText = `${minutes}:${seconds}`;
 }
 
-// --------------------
-// 一時停止
-// --------------------
 function pauseTimer(){
   paused = !paused;
 }
 
-// --------------------
-// 終了
-// --------------------
 function finishTimer(){
   clearInterval(focusInterval);
 
@@ -612,8 +646,10 @@ function finishTimer(){
   updateStampDisplay();
   updatePlant();
   saveFocusData();
-  hideAll();
+  
+  setFocusQuality('できた');
 
+  hideAll();
   document
     .getElementById("complete")
     .classList.remove("hidden");
@@ -623,25 +659,16 @@ function finishTimer(){
     .innerText = `現在のスタンプ数：${stamps}個`;
 }
 
-// --------------------
-// スタンプ保存
-// --------------------
 function saveStamps(){
   localStorage.setItem("stamps", stamps);
 }
 
-// --------------------
-// スタンプ表示
-// --------------------
 function updateStampDisplay(){
   document
     .getElementById("stampCount")
     .innerText = `🌟 スタンプ：${stamps}個`;
 }
 
-// --------------------
-// 植物成長
-// --------------------
 function updatePlant(){
   let plant = "🌱";
   if(stamps >= 30){
@@ -659,17 +686,43 @@ function updatePlant(){
     .innerText = plant;
 }
 
-// 変更：達成記録を追加して自動でホームに戻る
-function saveAchievementAndGoHome(){
-  const text = document.getElementById("achievementInput").value;
-  if(text.trim() === "") {
-    goHome();
-    return;
+function setFocusQuality(quality) {
+  currentFocusQuality = quality;
+  const goodBtn = document.getElementById("qualityGoodBtn");
+  const badBtn = document.getElementById("qualityBadBtn");
+
+  if (quality === 'できた') {
+    goodBtn.style.background = "#22c55e";
+    goodBtn.style.fontWeight = "bold";
+    badBtn.style.background = "#475569";
+    badBtn.style.fontWeight = "normal";
+  } else {
+    goodBtn.style.background = "#475569";
+    goodBtn.style.fontWeight = "normal";
+    badBtn.style.background = "#ef4444";
+    badBtn.style.fontWeight = "bold";
+  }
+}
+
+// 変更：集中度を綺麗にラッピングして必ず達成リストへ保存する関数
+function saveFocusResult(includeText) {
+  let text = "";
+  if (includeText) {
+    text = document.getElementById("achievementInput").value.trim();
   }
 
+  // テキストが未入力、または「記録せずに戻る」でも活動ログを残す
+  if (text === "") {
+    text = "集中タイマー完了";
+  }
+
+  // 集中度バッジを綺麗に整形して付与
+  const badge = currentFocusQuality === 'できた' ? '(🎯 集中できた)' : '(☁️ 集中できなかった)';
+  const fullText = `${text} ${badge}`;
+
   achievements.push({
-    text:text,
-    date:new Date().toLocaleDateString()
+    text: fullText,
+    date: new Date().toLocaleDateString()
   });
 
   localStorage.setItem("achievements", JSON.stringify(achievements));
@@ -678,9 +731,6 @@ function saveAchievementAndGoHome(){
   goHome();
 }
 
-// --------------------
-// 達成記録表示
-// --------------------
 function renderAchievements(){
   const list = document.getElementById("achievementList");
   if(!list) return;
@@ -696,9 +746,6 @@ function renderAchievements(){
     });
 }
 
-// --------------------
-// 気分履歴表示
-// --------------------
 function renderMoodHistory(){
   const list = document.getElementById("moodHistory");
   if(!list) return;
@@ -714,9 +761,6 @@ function renderMoodHistory(){
     });
 }
 
-// --------------------
-// 集中時間保存
-// --------------------
 function saveFocusData(){
   const today = new Date().toLocaleDateString();
   const focusedMinutes = Math.floor(totalFocusedSeconds / 60);
@@ -725,9 +769,6 @@ function saveFocusData(){
   localStorage.setItem("focusData", JSON.stringify(focusData));
 }
 
-// --------------------
-// 直近7日間の日付データを取得
-// --------------------
 function getPast7Days() {
   const days = [];
   const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
@@ -752,7 +793,7 @@ function renderMoodTableAndCharts(){
   if(tableBody){
     tableBody.innerHTML = "";
     past7Days.forEach(day => {
-      const dayMood = moods.slice().reverse().find(m => m.date === day.dateStr);
+      const dayMood = moods.slice().reverse().find(m => m.date === day.dateStr && !m.mood.includes("💨"));
       const moodText = dayMood ? dayMood.mood : "ー";
       const shortDate = day.dateStr.split('/').slice(1).join('/');
       
@@ -764,29 +805,57 @@ function renderMoodTableAndCharts(){
 
   const labels = past7Days.map(day => day.dayName);
 
-  // 変更：元気スコアを4点に設定
+  // 1. 最初の気分スコアをマッピング
   const moodScoreMap = { "不安": 1, "だるい": 2, "普通": 3, "元気": 4 };
   const moodScores = past7Days.map(day => {
-    const dayMood = moods.slice().reverse().find(m => m.date === day.dateStr);
+    const dayMood = moods.slice().reverse().find(m => m.date === day.dateStr && moodScoreMap[m.mood]);
     return dayMood ? moodScoreMap[dayMood.mood] : null;
   });
 
+  // 2. 追加：呼吸後の気分変化をマッピングしてスコア化
+  const afterBreathScores = past7Days.map(day => {
+    const dayMoodBefore = moods.slice().reverse().find(m => m.date === day.dateStr && moodScoreMap[m.mood]);
+    const beforeScore = dayMoodBefore ? moodScoreMap[dayMoodBefore.mood] : null;
+
+    const dayMoodAfter = moods.slice().reverse().find(m => m.date === day.dateStr && m.mood.includes("💨 呼吸後:"));
+    if (!dayMoodAfter) return null; // 呼吸をしていない日は何も表示しない
+
+    if (dayMoodAfter.mood.includes("不安・だるさが減った！✨")) return 4; // 元気レベルまで回復
+    if (dayMoodAfter.mood.includes("少し楽になった 🌿")) return 3;       // 普通レベルまで回復
+    if (dayMoodAfter.mood.includes("あまり変わらない 😐")) return beforeScore; // 変わらない場合はそのまま
+    return null;
+  });
+
+  // グラフ描画（2本のデータセットを設定）
   const ctxMood = document.getElementById('moodChart').getContext('2d');
   if(moodChartInstance) moodChartInstance.destroy();
   moodChartInstance = new Chart(ctxMood, {
     type: 'line',
     data: {
       labels: labels,
-      datasets: [{
-        label: '気分スコア',
-        data: moodScores,
-        borderColor: '#38bdf8',
-        backgroundColor: 'rgba(56, 189, 248, 0.2)',
-        tension: 0.3,
-        spanGaps: true,
-        pointRadius: 4,
-        pointBackgroundColor: '#38bdf8'
-      }]
+      datasets: [
+        {
+          label: '最初の気分',
+          data: moodScores,
+          borderColor: '#38bdf8',
+          backgroundColor: 'rgba(56, 189, 248, 0.2)',
+          tension: 0.3,
+          spanGaps: true,
+          pointRadius: 5,
+          pointBackgroundColor: '#38bdf8'
+        },
+        {
+          label: '呼吸後の気分',
+          data: afterBreathScores,
+          borderColor: '#4ade80', // グリーン色の線
+          backgroundColor: 'rgba(74, 222, 128, 0.2)',
+          tension: 0.3,
+          spanGaps: true,
+          pointRadius: 6,
+          pointStyle: 'triangle', // 区別しやすいように三角マーク
+          pointBackgroundColor: '#4ade80'
+        }
+      ]
     },
     options: {
       responsive: true,
@@ -794,7 +863,7 @@ function renderMoodTableAndCharts(){
         x: { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(255,255,255,0.05)' } },
         y: {
           min: 0,
-          max: 5, // 変更：最高点を4点にしたため上限を調整
+          max: 5,
           ticks: {
             color: '#cbd5e1',
             stepSize: 1,
@@ -810,7 +879,10 @@ function renderMoodTableAndCharts(){
         }
       },
       plugins: {
-        legend: { display: false }
+        legend: { 
+          display: true, // 凡例を表示
+          labels: { color: '#cbd5e1' }
+        }
       }
     }
   });
