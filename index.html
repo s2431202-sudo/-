@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mind Bloom</title>
 
+  <!-- グラフ描画用のライブラリ (Chart.js) を読み込み -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
@@ -32,7 +33,7 @@
     }
 
     h1{
-      font-size:28px;
+      font-size:24px;
       margin-bottom:10px;
     }
 
@@ -69,7 +70,7 @@
       transform:scale(1.03);
     }
 
-    /* 戻るボタン専用：小さく控えめにして分かりやすく */
+    /* 戻るボタン専用 */
     .btn-back {
       width: 100%;
       padding: 10px;
@@ -112,7 +113,7 @@
 
     #plant {
       font-size: 50px;
-      margin-top: 10px;
+      margin-top: 5px;
     }
 
     #breathingCircle{
@@ -185,9 +186,9 @@
       border-radius: 15px;
     }
 
-    /* スライダーエリアの調整 */
+    /* スライダーエリア */
     .slider-container {
-      margin: 25px 0 15px 0;
+      margin: 20px 0;
       background: rgba(0, 0, 0, 0.25);
       padding: 18px 15px;
       border-radius: 18px;
@@ -237,16 +238,21 @@
 
 <div class="app">
 
+  <!-- ホーム -->
   <div id="home">
     <h1>Mind Bloom 🌙</h1>
-    <p>今の気分をスライドしてね</p>
 
     <div id="stampCount">
       🌟 スタンプ：0個
     </div>
     
     <div id="plant">🌱</div>
-    <div style="font-size: 11px; color: #cbd5e1; margin-bottom: 10px;">
+    
+    <div id="plantUpgradeInfo" style="font-size: 13px; color: #facc15; margin-bottom: 8px; font-weight: bold;">
+      あと5個で🌿に成長！
+    </div>
+
+    <div style="font-size: 11px; color: #cbd5e1; margin-bottom: 15px;">
       (5🌿 15🌷 30🌸 で成長！)
     </div>
 
@@ -255,6 +261,22 @@
       <span id="todayFocusTime" style="font-size: 26px; font-weight: bold; color: #38bdf8;">0分</span>
     </div>
 
+    <button class="btn" onclick="goMoodSelect()" style="background: #38bdf8; font-weight: bold; color: #0f172a; margin-top: 15px;">
+      気分選択に進む
+    </button>
+
+    <button class="btn" onclick="openHistory()" style="background: #1e293b; border: 1px solid #475569; margin-top: 12px;">
+      過去の記録を見る
+    </button>
+  </div>
+
+  <!-- 気分選択画面 -->
+  <div id="moodSelect" class="hidden">
+    <h1>気分選択</h1>
+    <p style="margin-top: 20px; margin-bottom: 0; font-size: 18px; font-weight: bold; color: #facc15;">今の調子は？</p>
+    <p style="margin-top: 4px; margin-bottom: -5px; font-size: 12px; color: #cbd5e1;">今の気分をスライドしてね</p>
+
+    <!-- 3段階の横スライダーUI -->
     <div class="slider-container">
       <input type="range" id="moodSlider" min="1" max="3" value="2" class="mood-slider">
       <div class="slider-labels">
@@ -268,30 +290,33 @@
       この気分で進む
     </button>
 
-    <button class="btn" onclick="openHistory()" style="background: #1e293b; border: 1px solid #475569; margin-top: 20px;">
-      過去の記録を見る
-    </button>
-  </div>
-
-  <div id="support" class="hidden">
-    <h1>AIサポート</h1>
-    <p id="message"></p>
-
-    <div id="breathingQuestion">
-      <p>腹式呼吸を行いますか？</p>
-      <button class="btn" onclick="startBreathing()">
-        はい
-      </button>
-      <button class="btn" onclick="goFocusSetup()">
-        いいえ
-      </button>
-    </div>
-
-    <button class="btn-back" onclick="goHome()">
+    <button class="btn-back" onclick="goBack()">
       戻る
     </button>
   </div>
 
+  <!-- 腹式呼吸の確認画面 -->
+  <div id="support" class="hidden">
+    <h1>腹式呼吸を行いますか？</h1>
+    <div style="font-size: 48px; margin: 15px 0;">🫧</div>
+    <p style="font-size: 14px; margin-bottom: 20px;">
+      気持ちを整えてから始めてみませんか？<br>
+      深い呼吸でひと息ついて、心地よく集中できる状態をつくりましょう。
+    </p>
+
+    <button class="btn" onclick="startBreathing()" style="background: #38bdf8; font-weight: bold; color: #0f172a;">
+      はい、呼吸してみる
+    </button>
+    <button class="btn" onclick="goFocusSetup()">
+      そのまま始める
+    </button>
+
+    <button class="btn-back" onclick="goBack()">
+      戻る
+    </button>
+  </div>
+
+  <!-- 腹式呼吸 -->
   <div id="breathing" class="hidden">
     <h1>腹式呼吸</h1>
     <div id="breathingCircle"></div>
@@ -301,25 +326,30 @@
     <button class="btn" onclick="skipBreathing()" style="background: #475569;">
       スキップしてタイマーへ
     </button>
-    <button class="btn-back" onclick="goHome()">
+    <button class="btn-back" onclick="goBack()">
       戻る
     </button>
   </div>
 
+  <!-- タイマー開始前 -->
   <div id="focusSetup" class="hidden">
     <h1>集中タイマー</h1>
     <p>
       まずは1分だけ始めてみよう<br>
-      <span style="font-size: 12px; color: #facc15;">※1分以上の集中でスタンプをゲット！</span>
+      <span style="font-size: 13px; color: #38bdf8; display: block; margin-top: 8px; line-height: 1.4; padding: 0 5px;">
+        1分たっても作業を続けよう。アラームは鳴りません。
+      </span>
+      <span style="font-size: 12px; color: #facc15; display: block; margin-top: 8px;">※1分以上の集中でスタンプをゲット！</span>
     </p>
     <button class="btn" onclick="startFocusTimer()">
       スタート
     </button>
-    <button class="btn-back" onclick="goHome()">
+    <button class="btn-back" onclick="goBack()">
       戻る
     </button>
   </div>
 
+  <!-- 集中タイマー -->
   <div id="focus" class="hidden">
     <h1>集中タイマー</h1>
     <div id="timer">01:00</div>
@@ -333,10 +363,11 @@
     </div>
   </div>
 
+  <!-- 完了・終了画面 -->
   <div id="complete" class="hidden">
-    <h1>おつかれさま！</h1>
-    <div class="stamp">🌟</div>
-    <p>スタンプを獲得しました！</p>
+    <h1 id="completeTitle">おつかれさま！</h1>
+    <div id="completeIcon" class="stamp">🌟</div>
+    <p id="completeText">スタンプを獲得しました！</p>
     <div id="completeStampCount" style="margin-bottom: 20px;"></div>
     
     <button class="btn" onclick="goHome()" style="background: #0284c7;">
@@ -344,14 +375,17 @@
     </button>
   </div>
 
+  <!-- 過去の記録画面 -->
   <div id="history" class="hidden">
     <h1>過去の記録</h1>
     
+    <!-- 一日の集中時間グラフ -->
     <h2>一日の集中時間</h2>
     <div class="chart-container">
       <canvas id="focusChart"></canvas>
     </div>
 
+    <!-- 1週間の気分変化（表） -->
     <h2>一週間の気分変化</h2>
     <table class="history-table">
       <thead>
@@ -363,7 +397,7 @@
       <tbody id="moodTableBody"></tbody>
     </table>
 
-    <button class="btn-back" onclick="goHome()" style="margin-top: 20px;">
+    <button class="btn-back" onclick="goBack()" style="margin-top: 20px;">
       戻る
     </button>
   </div>
@@ -378,10 +412,18 @@ let countingUp = false;
 let paused = false;
 let totalFocusedSeconds = 0;
 
+let timerStartTime = 0;
+let timerAccumulatedSeconds = 0;
+let sessionStampsEarned = 0;
+
 let breathInterval;
 let breathCountdown;
 
 let focusChartInstance = null;
+
+// 画面遷移管理スタック
+let pageHistory = [];
+let currentScreen = 'home';
 
 // --------------------
 // 保存データ読み込み
@@ -402,7 +444,7 @@ updatePlant();
 updateTodayFocusText();
 
 // --------------------
-// 共通
+// 画面遷移共通処理
 // --------------------
 function hideAll(){
   document
@@ -410,15 +452,57 @@ function hideAll(){
     .forEach(div => div.classList.add("hidden"));
 }
 
+// 指定した画面を表示して履歴に積む
+function navigateTo(targetId){
+  if(currentScreen === targetId) return;
+  
+  pageHistory.push(currentScreen);
+  hideAll();
+  document.getElementById(targetId).classList.remove("hidden");
+  currentScreen = targetId;
+}
+
+// ひとつ前の画面に戻る
+function goBack(){
+  clearInterval(focusInterval);
+  clearInterval(breathCountdown);
+  clearInterval(breathInterval);
+
+  if(pageHistory.length > 0){
+    const prevScreen = pageHistory.pop();
+    hideAll();
+    document.getElementById(prevScreen).classList.remove("hidden");
+    currentScreen = prevScreen;
+
+    if(prevScreen === 'home'){
+      updateTodayFocusText();
+      updatePlant();
+    }
+  } else {
+    goHome();
+  }
+}
+
+// ホームに直接戻る（履歴クリア）
 function goHome(){
   clearInterval(focusInterval);
   clearInterval(breathCountdown);
   clearInterval(breathInterval);
+  
+  pageHistory = [];
+  currentScreen = 'home';
+  
   hideAll();
-  document
-    .getElementById("home")
-    .classList.remove("hidden");
+  document.getElementById("home").classList.remove("hidden");
   updateTodayFocusText();
+  updatePlant();
+}
+
+// --------------------
+// 気分選択画面を表示
+// --------------------
+function goMoodSelect(){
+  navigateTo("moodSelect");
 }
 
 // --------------------
@@ -450,7 +534,7 @@ function submitSliderMood() {
 }
 
 // --------------------
-// 気分選択 (すべての気分で呼吸の確認を行う)
+// 気分選択
 // --------------------
 function selectMood(mood){
   moods.push({
@@ -459,33 +543,14 @@ function selectMood(mood){
   });
   localStorage.setItem("moods", JSON.stringify(moods));
 
-  // どの気分でもAIサポート画面（呼吸の選択）を表示
-  hideAll();
-  document
-    .getElementById("support")
-    .classList.remove("hidden");
-
-  const message = document.getElementById("message");
-
-  if(mood === "調子が悪い"){
-    message.innerText = "少しお疲れのようですね。深呼吸をして、リラックスしてから始めてみませんか？";
-  }
-  else if(mood === "調子がいい"){
-    message.innerText = "絶好調ですね！その調子をキープするために、まずは呼吸を整えてさらに集中力を高めましょう！";
-  }
-  else{
-    message.innerText = "落ち着いていますね。心地よい集中に入るために、軽く深呼吸を取り入れてみませんか？";
-  }
+  navigateTo("support");
 }
 
 // --------------------
 // 腹式呼吸
 // --------------------
 function startBreathing(){
-  hideAll();
-  document
-    .getElementById("breathing")
-    .classList.remove("hidden");
+  navigateTo("breathing");
 
   const breathText = document.getElementById("breathText");
   const circle = document.getElementById("breathingCircle");
@@ -541,51 +606,52 @@ function skipBreathing() {
 // 集中準備
 // --------------------
 function goFocusSetup(){
-  hideAll();
-  document
-    .getElementById("focusSetup")
-    .classList.remove("hidden");
+  navigateTo("focusSetup");
 }
 
 // --------------------
 // 集中タイマー
 // --------------------
 function startFocusTimer(){
-  hideAll();
-  document
-    .getElementById("focus")
-    .classList.remove("hidden");
+  navigateTo("focus");
+
+  timerStartTime = Date.now();
+  timerAccumulatedSeconds = 0;
+  sessionStampsEarned = 0;
+  totalFocusedSeconds = 0;
 
   totalSeconds = 60;
   countingUp = false;
   paused = false;
-  totalFocusedSeconds = 0;
   updateTimerDisplay();
 
   focusInterval = setInterval(()=>{
     if(paused) return;
 
-    if(!countingUp){
-      totalSeconds--;
-      totalFocusedSeconds++;
-      if(totalSeconds <= 0){
-        countingUp = true;
-        totalSeconds = 0;
-      }
+    let elapsedSeconds = Math.floor((Date.now() - timerStartTime) / 1000) + timerAccumulatedSeconds;
+    totalFocusedSeconds = elapsedSeconds;
+
+    if(totalFocusedSeconds < 60){
+      countingUp = false;
+      totalSeconds = 60 - totalFocusedSeconds;
     }
     else{
-      totalSeconds++;
-      totalFocusedSeconds++;
-
-      if(totalFocusedSeconds % 600 === 0){
-        stamps++;
-        saveStamps();
-        updateStampDisplay();
-        updatePlant();
-      }
+      countingUp = true;
+      totalSeconds = totalFocusedSeconds - 60;
     }
+
+    let currentSessionStamps = Math.floor(totalFocusedSeconds / 600);
+    if(currentSessionStamps > sessionStampsEarned) {
+      let diff = currentSessionStamps - sessionStampsEarned;
+      stamps += diff;
+      sessionStampsEarned = currentSessionStamps;
+      saveStamps();
+      updateStampDisplay();
+      updatePlant();
+    }
+
     updateTimerDisplay();
-  },1000);
+  }, 500);
 }
 
 function updateTimerDisplay(){
@@ -606,15 +672,37 @@ function updateTimerDisplay(){
 }
 
 function pauseTimer(){
-  paused = !paused;
+  if(!paused) {
+    timerAccumulatedSeconds += Math.floor((Date.now() - timerStartTime) / 1000);
+    paused = true;
+  } else {
+    timerStartTime = Date.now();
+    paused = false;
+  }
 }
 
 function finishTimer(){
   clearInterval(focusInterval);
 
+  if(!paused) {
+    timerAccumulatedSeconds += Math.floor((Date.now() - timerStartTime) / 1000);
+  }
+  totalFocusedSeconds = timerAccumulatedSeconds;
+
+  const titleEl = document.getElementById("completeTitle");
+  const iconEl = document.getElementById("completeIcon");
+  const textEl = document.getElementById("completeText");
+
   if(totalFocusedSeconds >= 60){
     stamps++;
     saveStamps();
+    if(titleEl) titleEl.innerText = "おつかれさま！";
+    if(iconEl) iconEl.innerText = "🌟";
+    if(textEl) textEl.innerText = "スタンプを獲得しました！";
+  } else {
+    if(titleEl) titleEl.innerText = "タイマー終了";
+    if(iconEl) iconEl.innerText = "⏱";
+    if(textEl) textEl.innerText = "スタンプをゲットできませんでした。また挑戦しましょう！";
   }
 
   updateStampDisplay();
@@ -645,19 +733,36 @@ function updateStampDisplay(){
 
 function updatePlant(){
   let plant = "🌱";
+  let infoText = "";
+
   if(stamps >= 30){
     plant = "🌸";
+    infoText = "最大まで成長しました！🎉";
   }
   else if(stamps >= 15){
     plant = "🌷";
+    let next = 30 - stamps;
+    infoText = `あと ${next} 個で 🌸 に成長！`;
   }
   else if(stamps >= 5){
     plant = "🌿";
+    let next = 15 - stamps;
+    infoText = `あと ${next} 個で 🌷 に成長！`;
+  }
+  else{
+    plant = "🌱";
+    let next = 5 - stamps;
+    infoText = `あと ${next} 個で 🌿 に成長！`;
   }
 
   const plantEl = document.getElementById("plant");
   if(plantEl) {
     plantEl.innerText = plant;
+  }
+
+  const infoEl = document.getElementById("plantUpgradeInfo");
+  if(infoEl) {
+    infoEl.innerText = infoText;
   }
 }
 
@@ -684,12 +789,11 @@ function getPast7Days() {
 }
 
 // --------------------
-// 過去の記録画面：データ＆グラフ描画
+// 過去の記録画面
 // --------------------
 function renderHistoryData(){
   const past7Days = getPast7Days();
   
-  // 1週間の気分変化（表）
   const tableBody = document.getElementById("moodTableBody");
   if(tableBody){
     tableBody.innerHTML = "";
@@ -704,7 +808,6 @@ function renderHistoryData(){
     });
   }
 
-  // 集中時間グラフの描画
   const labels = past7Days.map(day => day.dayName);
   const focusMinutes = past7Days.map(day => focusData[day.dateStr] || 0);
 
@@ -742,11 +845,7 @@ function renderHistoryData(){
 }
 
 function openHistory(){
-  hideAll();
-  document
-    .getElementById("history")
-    .classList.remove("hidden");
-
+  navigateTo("history");
   renderHistoryData();
 }
 </script>
