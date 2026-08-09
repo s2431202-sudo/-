@@ -116,19 +116,56 @@
       margin-top: 5px;
     }
 
-    #breathingCircle{
-      width:120px;
-      height:120px;
-      border-radius:50%;
-      background:#38bdf8;
-      margin:20px auto;
-      transition:all 4s linear;
-      opacity:0.8;
+    #starGauge {
+      margin: 8px 0;
+      display: flex;
+      justify-content: center;
+      gap: 4px;
     }
 
+    /* 腹式呼吸の円（淡い青〜水色のグラデーション） */
+    #breathingCircle{
+      width:140px;
+      height:140px;
+      border-radius:50%;
+      background: linear-gradient(135deg, #e0f2fe, #38bdf8);
+      margin:25px auto;
+      transition:all 4s linear;
+      opacity:0.95;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+    }
+
+    /* 円の中に配置されるテキスト */
     #breathText{
-      font-size:28px;
-      margin-top:15px;
+      font-size:22px;
+      font-weight: bold;
+      color: #0f172a;
+      text-align: center;
+      padding: 0 10px;
+      line-height: 1.3;
+    }
+
+    /* テキスト入力フォーム用スタイル */
+    .todo-input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.3);
+      color: white;
+      font-size: 14px;
+      box-sizing: border-box;
+      text-align: center;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    .todo-input:focus {
+      border-color: #38bdf8;
+      background: rgba(0, 0, 0, 0.5);
     }
 
     .small-btn{
@@ -247,13 +284,16 @@
     </div>
     
     <div id="plant">🌱</div>
+
+    <!-- 5連星スタンプ表示エリア -->
+    <div id="starGauge"></div>
     
     <div id="plantUpgradeInfo" style="font-size: 13px; color: #facc15; margin-bottom: 8px; font-weight: bold;">
       あと5個で🌿に成長！
     </div>
 
     <div style="font-size: 11px; color: #cbd5e1; margin-bottom: 15px;">
-      (5🌿 15🌷 30🌸 で成長！)
+      (5個ごとに 🌿 🌷 🌸 に成長！)
     </div>
 
     <div class="focus-box">
@@ -265,7 +305,12 @@
       気分選択に進む
     </button>
 
-    <button class="btn" onclick="openHistory()" style="background: #1e293b; border: 1px solid #475569; margin-top: 12px;">
+    <!-- 集中タイマーへ直接進むボタン -->
+    <button class="btn" onclick="goFocusSetup()" style="background: #0284c7; font-weight: bold; color: white; margin-top: 10px;">
+      集中タイマーへ進む
+    </button>
+
+    <button class="btn" onclick="openHistory()" style="background: #1e293b; border: 1px solid #475569; margin-top: 10px;">
       過去の記録を見る
     </button>
   </div>
@@ -316,14 +361,18 @@
     </button>
   </div>
 
-  <!-- 腹式呼吸 -->
+  <!-- 腹式呼吸 画面 -->
   <div id="breathing" class="hidden">
-    <h1>腹式呼吸</h1>
-    <div id="breathingCircle"></div>
-    <div id="breathText">吸う</div>
-    <p id="breathTimer">1:00</p>
+    <h1 id="breathTitle" style="margin-bottom: 2px; font-size: 20px;">円の動きに合わせて呼吸をしよう</h1>
+    <div style="font-size: 13px; color: #94a3b8; margin-bottom: 15px;">腹式呼吸</div>
+
+    <div id="breathingCircle">
+      <div id="breathText"></div>
+    </div>
     
-    <button class="btn" onclick="skipBreathing()" style="background: #475569;">
+    <p id="breathTimer">1:00</p>
+
+    <button class="btn" onclick="skipBreathing()" style="background: #475569; margin-top: 20px;">
       スキップしてタイマーへ
     </button>
     <button class="btn-back" onclick="goBack()">
@@ -334,14 +383,27 @@
   <!-- タイマー開始前 -->
   <div id="focusSetup" class="hidden">
     <h1>集中タイマー</h1>
-    <p>
-      まずは1分だけ始めてみよう<br>
-      <span style="font-size: 13px; color: #38bdf8; display: block; margin-top: 8px; line-height: 1.4; padding: 0 5px;">
-        1分たっても作業を続けよう。アラームは鳴りません。
-      </span>
-      <span style="font-size: 12px; color: #facc15; display: block; margin-top: 8px;">※1分以上の集中でスタンプをゲット！</span>
+    
+    <p style="font-size: 18px; font-weight: bold; margin-top: 15px; margin-bottom: 5px; color: #ffffff;">
+      まずは1分だけ、やってみよう
     </p>
-    <button class="btn" onclick="startFocusTimer()">
+    <p style="font-size: 13px; color: #cbd5e1; margin-top: 0; margin-bottom: 20px;">
+      やる気が出てからではなく、まず1分だけ始めてみよう。
+    </p>
+
+    <!-- 今日やることを入力できるスペース -->
+    <div style="margin-bottom: 20px;">
+      <input type="text" id="todoInput" class="todo-input" placeholder="今日やることを入力...">
+    </div>
+
+    <p style="font-size: 13px; color: #facc15; margin-bottom: 6px; font-weight: bold;">
+      🌟1分以上集中するとスタンプを獲得！
+    </p>
+    <p style="font-size: 12px; color: #38bdf8; margin-top: 0; margin-bottom: 25px;">
+      1分間集中できていたら、そのまま続けられるよ。
+    </p>
+
+    <button class="btn" onclick="startFocusTimer()" style="background: #38bdf8; font-weight: bold; color: #0f172a;">
       スタート
     </button>
     <button class="btn-back" onclick="goBack()">
@@ -352,6 +414,7 @@
   <!-- 集中タイマー -->
   <div id="focus" class="hidden">
     <h1>集中タイマー</h1>
+    <div id="displayTodo" style="font-size: 14px; color: #facc15; margin-top: 5px; min-height: 20px; font-weight: bold;"></div>
     <div id="timer">01:00</div>
     <div class="btn-row">
       <button class="small-btn" onclick="pauseTimer()">
@@ -418,8 +481,19 @@ let sessionStampsEarned = 0;
 
 let breathInterval;
 let breathCountdown;
+let breathPrepInterval;
 
 let focusChartInstance = null;
+
+// ランダムメッセージ一覧
+const randomBreathMessages = [
+  "肩の力を抜いて",
+  "ゆっくりで大丈夫",
+  "今は何もしなくていい",
+  "ひと息ついてから始めよう",
+  "焦らなくて大丈夫",
+  "少しずつ整えていこう"
+];
 
 // 画面遷移管理スタック
 let pageHistory = [];
@@ -452,7 +526,6 @@ function hideAll(){
     .forEach(div => div.classList.add("hidden"));
 }
 
-// 指定した画面を表示して履歴に積む
 function navigateTo(targetId){
   if(currentScreen === targetId) return;
   
@@ -462,11 +535,15 @@ function navigateTo(targetId){
   currentScreen = targetId;
 }
 
-// ひとつ前の画面に戻る
-function goBack(){
+function stopAllTimers(){
   clearInterval(focusInterval);
   clearInterval(breathCountdown);
   clearInterval(breathInterval);
+  clearInterval(breathPrepInterval);
+}
+
+function goBack(){
+  stopAllTimers();
 
   if(pageHistory.length > 0){
     const prevScreen = pageHistory.pop();
@@ -483,11 +560,8 @@ function goBack(){
   }
 }
 
-// ホームに直接戻る（履歴クリア）
 function goHome(){
-  clearInterval(focusInterval);
-  clearInterval(breathCountdown);
-  clearInterval(breathInterval);
+  stopAllTimers();
   
   pageHistory = [];
   currentScreen = 'home';
@@ -551,15 +625,57 @@ function selectMood(mood){
 // --------------------
 function startBreathing(){
   navigateTo("breathing");
+  stopAllTimers();
 
+  const breathTitle = document.getElementById("breathTitle");
+  const breathText = document.getElementById("breathText");
+  const circle = document.getElementById("breathingCircle");
+  const timerText = document.getElementById("breathTimer");
+
+  // 初期見出し
+  if(breathTitle) breathTitle.innerText = "円の動きに合わせて呼吸をしよう";
+
+  // 初期化
+  if(circle) circle.style.transform = "scale(1)";
+  if(timerText) timerText.innerText = "1:00";
+
+  // カウントダウンフェーズ（3秒）
+  let prepCount = 3;
+  if(breathText){
+    breathText.innerHTML = `<span style="font-size: 38px; font-weight: bold; color: #0f172a;">${prepCount}</span>`;
+  }
+
+  breathPrepInterval = setInterval(() => {
+    prepCount--;
+    if(prepCount > 0){
+      if(breathText){
+        breathText.innerHTML = `<span style="font-size: 38px; font-weight: bold; color: #0f172a;">${prepCount}</span>`;
+      }
+    } else {
+      clearInterval(breathPrepInterval);
+      
+      // カウントダウン終了後：「円の動きに合わせて〜」が消えてランダム文字に切り替わる
+      if(breathTitle){
+        const randomMsg = randomBreathMessages[Math.floor(Math.random() * randomBreathMessages.length)];
+        breathTitle.innerText = randomMsg;
+      }
+
+      // 本体の呼吸ルーチン開始
+      runBreathingRoutine();
+    }
+  }, 1000);
+}
+
+// 本体の呼吸ルーチン（円が連動して動く）
+function runBreathingRoutine(){
   const breathText = document.getElementById("breathText");
   const circle = document.getElementById("breathingCircle");
   const timerText = document.getElementById("breathTimer");
 
   const phases = [
-    {text:"吸う", scale:1.4},
-    {text:"止める", scale:1.4},
-    {text:"吐く", scale:1}
+    {text:"吸う", scale:1.35},
+    {text:"止める", scale:1.35},
+    {text:"吐く", scale:1.0}
   ];
 
   let phaseIndex = 0;
@@ -572,7 +688,7 @@ function startBreathing(){
   }
 
   updateBreath();
-  breathInterval = setInterval(updateBreath,4000);
+  breathInterval = setInterval(updateBreath, 4000);
   let totalTime = 60; // 1分
 
   breathCountdown = setInterval(()=>{
@@ -589,16 +705,14 @@ function startBreathing(){
     }
 
     if(totalTime <= 0){
-      clearInterval(breathCountdown);
-      clearInterval(breathInterval);
+      stopAllTimers();
       goFocusSetup();
     }
-  },1000);
+  }, 1000);
 }
 
 function skipBreathing() {
-  clearInterval(breathCountdown);
-  clearInterval(breathInterval);
+  stopAllTimers();
   goFocusSetup();
 }
 
@@ -613,6 +727,14 @@ function goFocusSetup(){
 // 集中タイマー
 // --------------------
 function startFocusTimer(){
+  // 今日やることテキストを取得して表示に反映
+  const todoInput = document.getElementById("todoInput");
+  const displayTodo = document.getElementById("displayTodo");
+  if(todoInput && displayTodo){
+    const task = todoInput.value.trim();
+    displayTodo.innerText = task ? `📝 ${task}` : "";
+  }
+
   navigateTo("focus");
 
   timerStartTime = Date.now();
@@ -731,22 +853,26 @@ function updateStampDisplay(){
   }
 }
 
+// --------------------
+// 植物の成長と星表示の更新
+// --------------------
 function updatePlant(){
   let plant = "🌱";
   let infoText = "";
 
-  if(stamps >= 30){
+  // 5個刻みの成長ライン設定
+  if(stamps >= 15){
     plant = "🌸";
     infoText = "最大まで成長しました！🎉";
   }
-  else if(stamps >= 15){
+  else if(stamps >= 10){
     plant = "🌷";
-    let next = 30 - stamps;
+    let next = 15 - stamps;
     infoText = `あと ${next} 個で 🌸 に成長！`;
   }
   else if(stamps >= 5){
     plant = "🌿";
-    let next = 15 - stamps;
+    let next = 10 - stamps;
     infoText = `あと ${next} 個で 🌷 に成長！`;
   }
   else{
@@ -763,6 +889,23 @@ function updatePlant(){
   const infoEl = document.getElementById("plantUpgradeInfo");
   if(infoEl) {
     infoEl.innerText = infoText;
+  }
+
+  // 5個中いくつ溜まっているかを計算
+  let filledCount = (stamps >= 15) ? 5 : (stamps % 5);
+  let starHtml = "";
+
+  for(let i = 0; i < 5; i++){
+    if(i < filledCount){
+      starHtml += `<span style="color: #facc15; font-size: 22px;">★</span>`;
+    } else {
+      starHtml += `<span style="color: rgba(255, 255, 255, 0.2); font-size: 22px;">☆</span>`;
+    }
+  }
+
+  const starEl = document.getElementById("starGauge");
+  if(starEl){
+    starEl.innerHTML = starHtml;
   }
 }
 
